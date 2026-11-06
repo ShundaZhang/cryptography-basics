@@ -1,5 +1,6 @@
 """Original bilingual study notes, with question-oriented primary sources."""
 from html import escape
+from aes_content import mode_details, original_figure, round_steps
 
 PAGES=('index','foundations','symmetric','public-key','hashes','randomness','theory','history','tls','spdm','applied','future','labs','sources')
 NAV={'en':('Overview','Foundations','Symmetric','Public key & signatures','Hash / MAC / KDF','Randomness','Theory','History','TLS','SPDM','Applied crypto','Future','Labs','Sources'),
@@ -9,6 +10,9 @@ SOURCES={
  'hac':('Handbook of Applied Cryptography','应用密码学手册','https://cacr.uwaterloo.ca/hac/','FREE TEXTBOOK / HISTORICAL'),
  'video':('Stanford: Dan Boneh lectures and slides','Stanford：Dan Boneh 视频与讲义','https://crypto.stanford.edu/~dabo/courses/OnlineCrypto/','UNIVERSITY COURSE'),
  'aes':('FIPS 197: AES','FIPS 197：AES','https://csrc.nist.gov/pubs/fips/197/final','PUBLISHED FIPS'),
+ 'modes':('SP 800-38A: ECB, CBC, CFB, OFB and CTR','SP 800-38A：ECB、CBC、CFB、OFB 与 CTR','https://csrc.nist.gov/pubs/sp/800/38/a/final','PUBLISHED NIST RECOMMENDATION'),
+ 'xts':('SP 800-38E: XTS-AES','SP 800-38E：XTS-AES','https://csrc.nist.gov/pubs/sp/800/38/e/final','PUBLISHED NIST RECOMMENDATION'),
+ 'aes-example':('NIST AES-128 intermediate values','NIST AES-128 中间值','https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/AES_Core128.pdf','NIST EXAMPLE'),
  'gcm':('SP 800-38D: GCM','SP 800-38D：GCM','https://csrc.nist.gov/pubs/sp/800/38/d/final','PUBLISHED NIST RECOMMENDATION'),
  'chacha':('RFC 8439: ChaCha20-Poly1305','RFC 8439：ChaCha20-Poly1305','https://www.rfc-editor.org/rfc/rfc8439','INFORMATIONAL RFC'),
  'rsa':('RFC 8017: PKCS #1','RFC 8017：PKCS #1','https://www.rfc-editor.org/rfc/rfc8017.html','INFORMATIONAL RFC'),
@@ -66,13 +70,66 @@ def chapter_content(page,lang):
         add('bytes',t('Algorithms process bytes, not visual meaning','算法处理字节，不处理视觉含义'),t('Encoding choices are part of the security design.','编码选择是安全设计的一部分。'),p(t('Hex and Base64 are representations, not encryption. UTF-8, normalization, field boundaries, byte order and signed serialization must be agreed on. The strings “ab” + “c” and “a” + “bc” collide under naïve concatenation even without a hash collision. Use a specified, unambiguous encoding and domain labels.','Hex 与 Base64 是表示方式，不是加密。UTF-8、规范化、字段边界、字节序及签名序列化必须约定。“ab” + “c” 与 “a” + “bc” 的朴素拼接相同，这不是 Hash 碰撞。应使用规定好的无歧义编码和域标签。'))+math('encode(protocol_id, version, role, length(field_1), field_1, length(field_2), field_2)'),['book','tls'])
         add('parameters',t('Read parameters before comparing “bits”','比较“位数”前先看参数'),t('Key size, block size, digest size and estimated security are different quantities.','密钥长度、分组长度、摘要长度和估计安全强度是不同量。'),p(t('AES-256 still has a 128-bit block. A 256-bit hash has a generic classical collision cost around 2^128, not 2^256. A 2048-bit RSA modulus and a 256-bit elliptic-curve field do not represent comparable key lengths by simple counting. Use the algorithm’s security analysis, parameter set and usage limits.','AES-256 的分组仍是 128 位。256 位 Hash 的通用经典碰撞成本约为 2^128，而非 2^256。2048 位 RSA 模数和 256 位椭圆曲线域不能按位数直接比较。应看算法安全分析、参数集及使用上限。'))+note(t('A primitive is a building block','原语只是积木'),t('A protocol adds identity, negotiation, transcript binding, state transitions and failure behavior. A successful decrypt or signature check is not the whole protocol.','协议还加入身份、协商、转录绑定、状态转换和失败行为。解密或验签成功不代表整个协议成功。')),['book','aes'])
     elif page=='symmetric':
-        info=(t('A shared key protects<br><em>bulk data</em>','用共享密钥<br><em>保护大量数据</em>'),t('Block and stream ciphers, authenticated modes, nonce rules and the mistakes that undo good algorithms.','理解分组与流密码、认证模式、Nonce 规则，以及足以破坏好算法的使用错误。'))
-        add('primitives',t('AES and stream ciphers have different interfaces','AES 与流密码的接口不同'),t('AES is a keyed permutation on one block; a mode turns it into a message construction.','AES 是单个分组上的带密钥置换；模式把它组成消息构造。'),table([t('Construction','构造'),t('Mechanism','机制'),t('Remember','记住什么')],[
-            ('AES-128 / 192 / 256',t('128-bit block; 10 / 12 / 14 rounds','128 位分组；10 / 12 / 14 轮'),t('Key length changes rounds, not block length','密钥长度改变轮数，不改变分组长度')),
-            ('CTR / ChaCha20',t('Produce a keystream and XOR it with plaintext','产生密钥流，再与明文 XOR'),t('Repeated key/nonce can repeat the keystream','重复 key/nonce 可能重复密钥流')),
-            ('ECB',t('Independently encrypt each block','逐分组独立加密'),t('Equal input blocks reveal patterns; unsuitable for general message encryption','相同输入分组泄露模式，不适合普通消息加密')),
-            ('CBC',t('Chain blocks with an IV and padding','使用 IV 和填充链接分组'),t('Requires unpredictable IV and separate authentication; padding-oracle risk','需要不可预测 IV 和另行认证；存在填充 Oracle 风险')),
-        ]),['aes','chacha','book'])
+        info=(t('From AES rounds<br><em>to encrypted records</em>','从 AES 的轮变换<br><em>到消息加密</em>'),t('Trace one AES block, compare seven modes, and see where IVs, counters, tweaks and authentication tags enter.','从单个 AES 分组开始，对照七种工作模式，弄清 IV、计数器、tweak 和认证标签各在哪一步发挥作用。'))
+        add('primitives',t('AES and stream ciphers have different interfaces','AES 与流密码的接口不同'),
+            t('AES is a keyed permutation on one 16-byte block. A mode defines how to use it on a message or a storage unit.','AES 对一个 16 字节块执行带密钥的可逆变换；工作模式定义如何用它处理消息或存储单元。'),
+            table([t('Variant','算法'),t('Key length','密钥长度'),t('Block length','分组长度'),t('Rounds','轮数')],[
+                ('AES-128',t('128 bits','128 位'),t('128 bits','128 位'),'10'),
+                ('AES-192',t('192 bits','192 位'),t('128 bits','128 位'),'12'),
+                ('AES-256',t('256 bits','256 位'),t('128 bits','128 位'),'14'),
+            ])+p(t('ChaCha20 is a stream cipher with a keystream interface. AES exposes a forward and an inverse permutation. A mode such as CTR builds a keystream from repeated calls to the forward AES permutation.','ChaCha20 是直接产生密钥流的流密码。AES 提供正向和逆向置换；CTR 等模式通过多次调用正向 AES 来产生密钥流。')),['aes','chacha','book'])
+        operations = ''.join(
+            f'<article class="aes-transform"><h3>{name}</h3>{p(explanation)}{original_figure(t, filename, caption)}</article>'
+            for name, filename, caption, explanation in round_steps(t)
+        )
+        add('aes-rounds',t('AES encryption and decryption','AES 加密与解密'),
+            t('Track the 16-byte state through key expansion, reversible round transformations and the inverse cipher.','沿着密钥扩展、可逆的轮变换和逆向解密，追踪 16 字节状态。'),
+            p(t('AES stores the block as a 4×4 byte matrix in column order, state[row,col] = input[4·col+row]. The first four bytes fill the first column. KeyExpansion splits the master key into 32-bit words and generates Nr+1 round keys, each 16 bytes. Every Nk words, RotWord rotates one word, SubWord applies the S-box, and Rcon adds a round constant before the XOR with the word Nk positions back. AES-256 also applies SubWord halfway through each eight-word group. Here Nk is 4, 6 or 8, and Nr is the round count.',
+                'AES 按列把分组放进 4×4 字节矩阵，state[row,col] = input[4·col+row]，最前面 4 字节填满第一列。KeyExpansion 把主密钥拆成 32 位字，扩展出 Nr+1 个 16 字节轮密钥。每隔 Nk 个字，先用 RotWord 循环移位、SubWord 逐字节查 S 盒，再异或轮常量 Rcon，最后与前推 Nk 个位置的字异或。AES-256 还在每组八个字的中间额外执行 SubWord。这里 Nk 为 4、6 或 8，Nr 为轮数。'))
+            +math('''AES Encrypt
+  state ← AddRoundKey(input, RK[0])
+  for r = 1…Nr−1:
+    state ← SubBytes → ShiftRows → MixColumns → AddRoundKey(RK[r])
+  output ← SubBytes → ShiftRows → AddRoundKey(RK[Nr])
+
+AES Decrypt (inverse cipher)
+  state ← AddRoundKey(ciphertext, RK[Nr])
+  for r = Nr−1…1:
+    state ← InvShiftRows → InvSubBytes → AddRoundKey(RK[r]) → InvMixColumns
+  plaintext ← InvShiftRows → InvSubBytes → AddRoundKey(RK[0])''')
+            +p(t('Each arrow acts on the current state. The inverse cipher uses the same expanded round keys in reverse order. The encryption final round and the corresponding inverse boundary omit column mixing.','每个箭头都对当前状态继续运算。逆密码使用相同的扩展轮密钥，顺序反过来；正向末轮及相应的逆向边界省去列混合。'))
+            +f'<div class="aes-round-grid">{operations}</div>'
+            +'<h3>'+t('Walk one AES-128 block','跟算一个 AES-128 分组')+'</h3>'
+            +p(t('In NIST’s example, XOR the input with round key 0. The first byte is 0x6b ⊕ 0x2b = 0x40. Read the full state column by column. Compare the initial state and each step of round 1 against the intermediate values, then check the final ciphertext.',
+                 '在 NIST 算例中，先把输入与第 0 轮密钥异或，第一个字节是 0x6b ⊕ 0x2b = 0x40。下面的十六进制值按列展开。可以核对初始状态和第 1 轮的每一步，再检查最终密文。'))
+            +math('''Key / RK[0]    2b7e151628aed2a6abf7158809cf4f3c
+Plaintext      6bc1bee22e409f96e93d7e117393172a
+Initial XOR    40bfabf406ee4d3042ca6b997a5c5816
+1 SubBytes     090862bf6f28e3042c747feeda4a6a47
+1 ShiftRows    09287f476f746abf2c4a6204da08e3ee
+1 MixColumns   529f16c2978615cae01aae54ba1a2659
+1 AddRoundKey  f265e8d51fd2397bc3b9976d9076505c
+Ciphertext     3ad77bb40d7a3660a89ecaf32466ef97'''),['aes','aes-example'])
+
+        rows = [
+            ('ECB', t('None','无'), t('Whole blocks','整块'), t('Independent blocks reveal repeated patterns','独立加密泄露重复块')),
+            ('CBC', t('Unpredictable IV','不可预测 IV'), t('Whole blocks','整块'), t('Ciphertext chaining, confidentiality only','密文链接，仅机密性')),
+            ('CTR', t('Distinct counter blocks','计数器块不重复'), t('Truncate last keystream block','可截取末块密钥流'), t('Parallel keystream, confidentiality only','可并行生成密钥流，仅机密性')),
+            ('CFB', t('Unpredictable IV','不可预测 IV'), t('Whole segments','按段对齐'), t('Ciphertext feedback, confidentiality only','密文反馈，仅机密性')),
+            ('OFB', t('Unique IV','唯一 IV'), t('Truncate last keystream block','可截取末块密钥流'), t('Keystream feedback, confidentiality only','密钥流反馈，仅机密性')),
+            ('GCM', t('Unique nonce','唯一 Nonce'), t('Truncate last keystream block','可截取末块密钥流'), t('AEAD with tag and AAD','带 Tag 和 AAD 的认证加密')),
+            ('XTS', t('Data-unit number','数据单元编号'), t('Ciphertext stealing','密文窃取'), t('Length-preserving storage confidentiality','等长的存储机密性')),
+        ]
+        add('aes-modes',t('Compare the AES modes','AES 模式对照'),
+            t('The same block cipher can provide very different guarantees depending on what surrounds it.','底层都使用 AES，模式的输入和分组组织方式决定了各自的安全属性。'),
+            table([t('Mode','模式'),t('Public input','公开输入'),t('Length handling','长度处理'),t('What the mode provides','模式特点')],
+                [(f'<a href="#aes-{name.lower()}">{name}</a>', public, length, purpose) for name, public, length, purpose in rows])
+            +p(t('In the formulas, E_K and D_K are the forward and inverse AES permutations under key K. P[i] and C[i] are plaintext and ciphertext blocks or segments, ⊕ is XOR, || concatenates bit strings, and MSB_n / LSB_n take the first / last n bits. Indices start at 1 unless indicated. Figures are unmodified Wikimedia Commons originals; the references below each mode link to the technical standards.',
+                 '下文 E_K、D_K 表示密钥 K 下的 AES 正向、逆向置换，P[i]、C[i] 是明文和密文块或段，⊕ 表示异或，|| 表示比特串拼接，MSB_n / LSB_n 取前／后 n 位。除特别说明外，块编号从 1 开始。图采用 Wikimedia Commons 原图，各模式下方另附技术规范。')),['modes','gcm','xts'])
+        for ident, name, title, intro, figures, formula, notes, reference in mode_details(t):
+            illustrations = ''.join(original_figure(t, filename, caption) for filename, caption in figures)
+            add('aes-'+ident, f'{name} · {title}', intro, illustrations+math(formula)+p(*notes), [reference])
+
         add('aead',t('AEAD authenticates ciphertext and visible context','AEAD 认证密文和可见上下文'),t('Use the mode’s defined nonce and tag requirements.','遵守模式定义的 Nonce 和 Tag 要求。'),math('(ciphertext, tag) = Seal(key, nonce, plaintext, associated_data)\nplaintext or FAIL = Open(key, nonce, ciphertext, tag, associated_data)')+p(t('AES-GCM and ChaCha20-Poly1305 combine encryption with authentication. Associated data is visible but authenticated: a version, tenant, content type or sequence number can be bound to a record. The receiver must supply the same data and reject authentication failure before using plaintext.','AES-GCM 与 ChaCha20-Poly1305 结合加密和认证。关联数据可见但经过认证，可绑定版本、租户、内容类型或序号。接收方必须提供相同关联数据，并在使用明文前拒绝认证失败。')),['gcm','chacha','library'],'aead')
         add('nonces',t('Uniqueness is a lifecycle problem','唯一性是生命周期问题'),t('A random nonce is not a universal solution to restarts and concurrency.','随机 Nonce 不能自动解决重启与并发。'),p(t('For AES-GCM, never reuse a nonce with the same key. A 96-bit nonce is the conventional efficient choice, subject to the specification’s bounds. ChaCha20-Poly1305 also requires uniqueness. Counter allocation must survive concurrent writers, crashes and VM snapshots; random allocation needs a collision budget. Key rotation does not help if old key/nonce state is restored.','AES-GCM 不应在相同密钥下复用 Nonce。96 位 Nonce 是常见的高效选择，但仍受规范上限约束。ChaCha20-Poly1305 也要求唯一性。计数器分配要处理并发、崩溃和 VM 快照；随机分配要计算碰撞预算。恢复旧 key/nonce 状态时，密钥轮换本身也不能解决问题。'))+math('C1 = P1 XOR S\nC2 = P2 XOR S\nC1 XOR C2 = P1 XOR P2  # if the same keystream S is reused')+note(t('Authenticity does not imply replay protection','真实性不等于防重放'),t('An unchanged authenticated record may verify twice. Track protocol sequence or request state separately. XTS disk encryption solves a different problem and does not provide AEAD-style data authentication.','未修改的认证记录可以验证两次。协议序号或请求状态需要另行跟踪。XTS 磁盘加密解决另一类问题，不提供 AEAD 式数据认证。')),['gcm','chacha'])
         add('practice',t('A useful implementation exercise','一个有用的实现练习'),t('Validate failure behavior as well as the round trip.','既验证正确往返，也验证失败行为。'),bullets([t('Encrypt one record, then alter ciphertext, tag and AAD independently; every altered record should fail authentication.','加密一条记录，分别修改密文、Tag 与 AAD；每个修改后的记录都应认证失败。'),t('Write down how nonce allocation remains unique across restarts and multiple writers.','写清 Nonce 分配如何在重启和多个写入者之间保持唯一。'),t('Set a record-size/key-usage budget from the chosen algorithm and protocol; do not invent a universal unlimited lifetime.','按所选算法及协议设置记录大小和密钥使用预算，不设想无限使用寿命。')]),['library'])

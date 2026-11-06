@@ -19,3 +19,44 @@
 /* Keep message endpoints on actor lifelines at every width. */
 .viz-exchange>.viz-two{gap:0}.viz-exchange>.viz-two>.viz-node{margin:0 12px}.viz-packet{padding-left:0;padding-right:0}.viz-packet-label{margin:0 -25%;padding:0 4px;background:#f9fcfb}
 @media(max-width:600px){.viz-exchange>.viz-two{gap:0}.viz-exchange>.viz-two>.viz-node{margin:0 6px}.viz-packet{margin-left:25%;margin-right:25%}}
+
+.wiki-figure {
+    margin: 1rem 0 1.5rem;
+    padding: clamp(.75rem, 3vw, 1.25rem);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+.wiki-figure img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+.wiki-figure figcaption {
+    margin-top: .75rem;
+    color: var(--muted);
+    font-size: .875rem;
+    overflow-wrap: anywhere;
+}
+.wiki-figure figcaption span {
+    display: block;
+    font-size: .8125rem;
+}
+.aes-round-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.5rem;
+    margin: 1.5rem 0;
+}
+.aes-transform {
+    display: flex;
+    flex-direction: column;
+}
+.aes-transform .wiki-figure {
+    margin-top: auto;
+}
+@media (max-width: 700px) {
+    .aes-round-grid { grid-template-columns: 1fr; }
+}
+.wiki-image { display: block; }
