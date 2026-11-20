@@ -1,4 +1,4 @@
-"""Bilingual AES notes and attributions for unmodified Wikimedia Commons SVGs."""
+"""Bilingual AES notes with attributed original and user-supplied figures."""
 
 from html import escape
 from urllib.parse import quote
@@ -19,22 +19,34 @@ IMAGES = {
     'GCM-Galois_Counter_Mode_with_IV.svg': (696, 765, 'NIST (McGrew / Viega)', CC0),
     'XTS_encryption.svg': (841, 323, 'John-Mark Gurney (Ke6jjj upload)', PUBLIC_DOMAIN),
 }
+PROVIDED_IMAGES = {
+    'xex-blocks-provided.png': (1238, 476),
+    'xex-formula-provided.png': (1004, 318),
+    'xts-ciphertext-stealing-provided.png': (1210, 576),
+}
 
 
 def original_figure(t, filename, caption):
-    width, height, credit, license_url = IMAGES[filename]
     asset = 'assets/aes/' + quote(filename)
-    source = 'https://commons.wikimedia.org/wiki/File:' + quote(filename)
-    license_name = 'CC0 1.0' if license_url == CC0 else t('Public domain', '公有领域')
+    if filename in PROVIDED_IMAGES:
+        width, height = PROVIDED_IMAGES[filename]
+        attribution = t('User-supplied reference image', '用户提供的参考图')
+    else:
+        width, height, credit, license_url = IMAGES[filename]
+        source = 'https://commons.wikimedia.org/wiki/File:' + quote(filename)
+        license_name = 'CC0 1.0' if license_url == CC0 else t('Public domain', '公有领域')
+        attribution = (
+            f'{escape(credit)} · '
+            f'<a href="{source}">{t("Wikimedia Commons original", "Wikimedia Commons 原图")}</a> · '
+            f'<a href="{license_url}">{license_name}</a>'
+        )
     return (
         '<figure class="wiki-figure">'
         f'<a class="wiki-image" href="{asset}" target="_blank" rel="noopener"'
         f' aria-label="{t("Open full-size image", "打开完整尺寸原图")} · {escape(caption, quote=True)}">'
         f'<img src="{asset}" width="{width}" height="{height}"'
         f' loading="lazy" decoding="async" alt="{escape(caption, quote=True)}"></a>'
-        f'<figcaption><strong>{escape(caption)}</strong><span>{escape(credit)} · '
-        f'<a href="{source}">{t("Wikimedia Commons original", "Wikimedia Commons 原图")}</a> · '
-        f'<a href="{license_url}">{license_name}</a></span></figcaption></figure>'
+        f'<figcaption><strong>{escape(caption)}</strong><span>{attribution}</span></figcaption></figure>'
     )
 
 
@@ -145,15 +157,27 @@ def mode_details(t):
         ('xts', 'XTS', t('XEX-based Tweaked-Codebook mode with Ciphertext Stealing', '带密文窃取的 XEX 可调分组模式'),
          t('A tweak derived from the data-unit number and block index binds encryption to a storage location.',
            '由数据单元编号和块索引派生 tweak，使密文与存储位置相关。'),
-         (('XTS_encryption.svg',
-           t('Key₂ encrypts the data-unit number i. Multiplication by α advances the tweak; Key₁ handles the data blocks.',
-             'Key₂ 加密数据单元编号 i。每乘一次 α 就前进一个块位置；Key₁ 处理数据块。')),),
-         'T[0] = E_K2(Encode128(data_unit_number))\nT[j] = α^j · T[0] in the XTS field\nXEX_Encrypt(P, T) = E_K1(P ⊕ T) ⊕ T\nXEX_Decrypt(C, T) = D_K1(C ⊕ T) ⊕ T\n\nPartial tail of r bits, with last full block index j:\n  CC = XEX_Encrypt(P[j], T[j])\n  C_tail = MSB_r(CC)\n  C[j] = XEX_Encrypt(P_tail || LSB_(128−r)(CC), T[j+1])\nDecrypt the tail pair:\n  PP = XEX_Decrypt(C[j], T[j+1])\n  P_tail = MSB_r(PP)\n  P[j] = XEX_Decrypt(C_tail || LSB_(128−r)(PP), T[j])',
+         (
+             ('xex-blocks-provided.png',
+              t('XTS full-block path using the XEX structure. Key₂ derives the position-dependent tweak, and Key₁ encrypts data between the two XOR operations.',
+                'XTS 采用的 XEX 整块路径。Key₂ 派生位置相关的 tweak，Key₁ 在前后两次异或之间加密数据块。')),
+             ('xex-formula-provided.png',
+              t('XEX reference formula using a single K. I identifies the sector and j the block. The circled multiplication is in GF(2¹²⁸). XTS-AES uses independent K₂ for offset derivation and K₁ for data encryption, as written below.',
+                'XEX 参考公式使用单个 K。I 表示扇区编号，j 表示块编号，圈乘表示 GF(2¹²⁸) 乘法。XTS-AES 使用独立的 K₂ 派生偏移量、K₁ 加密数据，见下方公式。')),
+             ('xts-ciphertext-stealing-provided.png',
+              t('XTS ciphertext stealing. The red suffix of the provisional ciphertext completes the short plaintext block. The crossed black lines show the final full-block and short-tail output positions.',
+                'XTS 密文窃取。红色路径将临时密文的后部接到短明文之后，补成整块。黑色交叉线表示最终整块密文与短尾的输出位置。')),
+         ),
+         'T[0] = E_K2(Encode128(data_unit_number))\nT[j] = α^j · T[0] in the XTS field; j starts at 0\nXEX_Encrypt(P, T) = E_K1(P ⊕ T) ⊕ T\nXEX_Decrypt(C, T) = D_K1(C ⊕ T) ⊕ T\n\nPartial tail of r bits (1 ≤ r < 128), last full block index j:\n  CC = XEX_Encrypt(P[j], T[j])\n  C_tail = MSB_r(CC)\n  C[j] = XEX_Encrypt(P_tail || LSB_(128−r)(CC), T[j+1])\nDecrypt the tail pair:\n  PP = XEX_Decrypt(C[j], T[j+1])\n  P_tail = MSB_r(PP)\n  P[j] = XEX_Decrypt(C_tail || LSB_(128−r)(PP), T[j])',
          (
              t('K1 and K2 are separate keys of equal size. XTS-AES-128 and XTS-AES-256 use 256 and 512 bits of combined key material respectively. T[j] multiplies by powers of α in GF(2¹²⁸); follow the XTS byte and bit representation. For aligned data units the XEX transform operates on each block independently.',
                'K1 与 K2 是两把等长、相互独立的密钥。XTS-AES-128 和 XTS-AES-256 的合计密钥材料分别为 256 位和 512 位。T[j] 在 GF(2¹²⁸) 中乘 α 的幂，字节及比特表示须遵守 XTS 约定。对齐的数据单元用 XEX 独立处理各块。'),
-             t('The original image shows the full-block path. Ciphertext stealing borrows r bits from the provisional ciphertext CC for the short tail, then encrypts a full block with the next tweak. The stored data-unit length stays unchanged; follow the storage format’s ordering of the final full block and partial block. A unit needs at least one full block, and SP 800-38E caps it at 2²⁰ AES blocks.',
-               '原图展示整块路径。密文窃取从临时密文 CC 中借出 r 位给短尾，再用下一个 tweak 加密拼成的整块。数据单元长度保持不变；最后的整块与短块按存储格式规定的顺序存放。一个数据单元至少包含一个整块，SP 800-38E 将其上限设为 2²⁰ 个 AES 块。'),
+             t('The diagrams illustrate tweak progression and the final-pair data path. The formulas here use zero-based block indices, so the first block uses T[0] directly, with α⁰ = 1. MSB and LSB select the leading and trailing bit strings in these formulas.',
+               '配图展示 tweak 更新与尾块的数据路径。此处公式按块编号从 0 开始，首块直接使用 T[0]，对应 α⁰ = 1。MSB 与 LSB 在公式中分别取比特串的前部和后部。'),
+             t('For a full-block data unit, XTS uses the XEX transform throughout. A partial final block invokes ciphertext stealing on the last pair. With a 16-byte full block followed by a 5-byte tail, encrypt the full block to CC, take its first 5 bytes as C_tail, then encrypt P_tail || CC[5:] with the next tweak to form the final full ciphertext block. Decryption first uses that next tweak. The output remains 21 bytes.',
+               '数据单元全部对齐时，XTS 逐块使用 XEX 变换；末尾不足整块时，对最后一对块执行密文窃取。例如 16 字节整块加 5 字节短尾，先加密整块得到 CC，取 CC 的前 5 字节作为 C_tail，再将 P_tail || CC[5:] 用下一个 tweak 加密，得到最后的整块密文。解密时先使用这个后继 tweak，输出长度仍为 21 字节。'),
+             t('The formula orders the final full ciphertext block before C_tail. Follow the specified storage ordering when interoperating. A data unit needs at least one full AES block, and the published SP 800-38E limits it to 2²⁰ AES blocks.',
+               '公式将最后的整块密文放在 C_tail 之前，互操作时须核对规定的存储顺序。数据单元至少包含一个完整 AES 块，已发布的 SP 800-38E 将其上限设为 2²⁰ 个 AES 块。'),
              t('The data-unit number is a location input and may repeat when overwriting a sector. A snapshot observer can detect unchanged data at the same location under the same key. XTS has no tag or replay protection; a storage stack requiring integrity or rollback detection needs additional mechanisms.',
                '数据单元编号是位置参数，覆盖写入同一扇区时可重复。同一位置用同一密钥时，对比快照可以识别未变的数据。XTS 没有认证标签，也不防重放；存储系统需要额外机制来保证完整性或发现回滚。'),
          ), 'xts'),

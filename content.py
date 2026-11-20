@@ -124,8 +124,8 @@ Ciphertext     3ad77bb40d7a3660a89ecaf32466ef97'''),['aes','aes-example'])
             t('The same block cipher can provide very different guarantees depending on what surrounds it.','底层都使用 AES，模式的输入和分组组织方式决定了各自的安全属性。'),
             table([t('Mode','模式'),t('Public input','公开输入'),t('Length handling','长度处理'),t('What the mode provides','模式特点')],
                 [(f'<a href="#aes-{name.lower()}">{name}</a>', public, length, purpose) for name, public, length, purpose in rows])
-            +p(t('In the formulas, E_K and D_K are the forward and inverse AES permutations under key K. P[i] and C[i] are plaintext and ciphertext blocks or segments, ⊕ is XOR, || concatenates bit strings, and MSB_n / LSB_n take the first / last n bits. Indices start at 1 unless indicated. Figures are unmodified Wikimedia Commons originals; the references below each mode link to the technical standards.',
-                 '下文 E_K、D_K 表示密钥 K 下的 AES 正向、逆向置换，P[i]、C[i] 是明文和密文块或段，⊕ 表示异或，|| 表示比特串拼接，MSB_n / LSB_n 取前／后 n 位。除特别说明外，块编号从 1 开始。图采用 Wikimedia Commons 原图，各模式下方另附技术规范。')),['modes','gcm','xts'])
+            +p(t('In the formulas, E_K and D_K are the forward and inverse AES permutations under key K. P[i] and C[i] are plaintext and ciphertext blocks or segments, ⊕ is XOR, || concatenates bit strings, and MSB_n / LSB_n take the first / last n bits. Indices start at 1 unless indicated. Figure sources are identified in their captions; the references below each mode link to the technical standards.',
+                 '下文 E_K、D_K 表示密钥 K 下的 AES 正向、逆向置换，P[i]、C[i] 是明文和密文块或段，⊕ 表示异或，|| 表示比特串拼接，MSB_n / LSB_n 取前／后 n 位。除特别说明外，块编号从 1 开始。图下标注来源，各模式下方另附技术规范。')),['modes','gcm','xts'])
         for ident, name, title, intro, figures, formula, notes, reference in mode_details(t):
             illustrations = ''.join(original_figure(t, filename, caption) for filename, caption in figures)
             add('aes-'+ident, f'{name} · {title}', intro, illustrations+math(formula)+p(*notes), [reference])
