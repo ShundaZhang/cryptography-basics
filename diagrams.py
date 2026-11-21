@@ -38,6 +38,30 @@ def diagram(name,lang):
         body=flow([node(t('Noise + health tests','噪声 + 健康测试'),'SP 800-90B','neutral'),arrow(t('Condition / seed','调理 / 播种')),node('DRBG','SP 800-90A','protected'),arrow(t('State update + output','状态更新 + 输出')),node(t('Keys / tokens / samples','密钥 / Token / 样本'),'OS CSPRNG API','protected')])
         body+='<div class="viz-strip">'+t('SP 800-90C specifies constructions combining entropy sources and DRBGs; reseed and state protection depend on the construction','SP 800-90C 规定熵源与 DRBG 的组合构造；重播种和状态保护取决于构造')+'</div>'
         caption=t('A simplified trust path, not an entropy-source certification diagram. A long deterministic output cannot repair a guessable seed.','简化信任路径，并非熵源认证图。长的确定性输出无法修复可猜测种子。');src='90c'
+    elif name=='algebra-structure':
+        title=t('Build the algebra one operation at a time','逐步增加运算规则')
+        body=flow([
+            node(t('Abelian group under +','加法阿贝尔群'),t('0 and an additive inverse −a','零元 0 与加法逆元 −a'),'neutral'),
+            arrow(t('Add compatible multiplication','加入相容的乘法')),
+            node(t('Commutative ring with 1','带 1 的交换环'),t('Associativity and distributivity','结合律与分配律'),'neutral'),
+            arrow(t('Every nonzero element invertible','每个非零元素乘法可逆')),
+            node(t('Field','域'),t('0 ≠ 1; divide by nonzero elements','0 ≠ 1；可除以非零元素'),'protected'),
+        ])
+        caption=t('The arrows describe extra requirements on operations. In a field, removing 0 gives a multiplicative group.','箭头表示逐步增加的运算要求。域去掉 0 后，在乘法下构成群。');src='hac-math'
+    elif name=='binary-field-path':
+        title=t('From byte encoding to a field product','从字节编码到有限域乘法')
+        body=flow([
+            node('0x57, 0x83',t('Read bits as coefficients in GF(2)','把比特看作 GF(2) 系数'),'neutral'),
+            arrow(t('Multiply polynomials','多项式相乘')),
+            node(t('Carry-less product','无进位乘积'),t('Add overlapping terms with XOR','同次项系数用 XOR 相加')),
+            arrow(t('Reduce modulo 0x11b','对 0x11b 约减')),
+            node('0xc1',t('A byte in the AES field','AES 有限域中的一个字节'),'protected'),
+        ])
+        caption=t('The modulus is x⁸+x⁴+x³+x+1. The same byte encoding can represent different operations when a different field or ring is chosen.','模多项式为 x⁸+x⁴+x³+x+1。选择不同的域或环时，相同字节编码对应的运算也可能不同。');src='aes'
+    elif name=='attack-access':
+        title=t('What can the attacker ask for?','攻击者能获得哪些回答？')
+        body='<div class="viz-two">'+node('COA',t('Observe ciphertexts and public information','观察密文与公开信息'),'outside')+node('KPA',t('Also know some plaintext–ciphertext pairs','额外知道一些明文—密文对'),'outside')+node('CPA',t('Choose P and obtain Enc(k,P)','选择 P，获得 Enc(k,P)'),'outside')+node('CCA',t('Choose C and obtain permitted Dec(k,C)','选择 C，获得允许的 Dec(k,C)'),'outside')+'</div>'
+        caption=t('Oracle access hides the key. The security experiment specifies which queries are allowed and what counts as success.','Oracle 隐藏密钥，安全实验另行规定允许的查询及成功条件。');src='attack-intro'
     elif name=='security-game':
         title=t('An indistinguishability game makes the claim precise','不可区分性游戏让安全声明变精确')
         body=flow([node(t('Adversary chooses m₀, m₁','攻击者选择 m₀、m₁'),t('Equal length; allowed oracle queries','等长；允许的 Oracle 查询'),'outside'),arrow(t('Submit pair','提交消息对')),node(t('Challenger chooses b ∈ {0,1}','挑战者选择 b ∈ {0,1}'),t('Return Enc(k,m_b)','返回 Enc(k,m_b)'),'neutral'),arrow(t('Ciphertext','密文')),node(t('Adversary guesses b′','攻击者猜测 b′'),t('Measure advantage over a random guess','衡量超过随机猜测的优势'),'outside')])
